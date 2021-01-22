@@ -1,0 +1,86 @@
+﻿@using BlazorFileUpload.Shared
+
+@if (AttachmentList.Any())
+{
+
+    @foreach (var attachment in AttachmentList)
+    {
+        <div class="form-group row">
+            <div class="form-inline col">
+                <button class="btn btn-danger col-1" @onclick="(() => DeleteAttachment(attachment))" >X</button>
+                <input type="text" placeholder="Describe your attachment" class="form-control col" @bind-value=@attachment.FileDescription/>
+                <a href="@attachment.UriForFile" target="_blank" class=" col-1">
+                    <img src="images/OpenNewTab.jpg" width="25"/>
+                </a>
+            </div>
+        </div>
+    }
+}
+else
+{
+    <div class="form-group row">
+        <label class=" col">(No attachments to show)</label>
+    </div>
+}
+<br />
+
+@if (IsAddingFile)
+{
+
+    <FileUpload FileStorageRelativePath=@FileRelativePathOnServer OnFileUploaded="FileUploadHandler"></FileUpload>
+}
+else
+{
+    <div class="form-group row">
+        <div class="form-group col">
+            <button type="button" class="btn btn-primary col-12" @onclick="() => IsAddingFile = !IsAddingFile">Add New Attachment</button>
+        </div>
+    </div>
+}
+
+
+@code
+{
+    [Parameter] public List<AttachedFile> AttachmentList { get; set; }
+
+    /// <summary>
+    /// Flag for showing or hiding the part that allows adding a new file
+    /// </summary>
+    private bool IsAddingFile { get; set; } = false;
+
+    /// <summary>
+    /// the location under the site root folder where these files will be uploaded
+    /// </summary>
+    private string FileRelativePathOnServer = "Attachments";
+
+    private string FileNameChosen { get; set; } = "Choose File";
+
+    /// <summary>
+    /// THis only removes the file from the list, not from the server
+    /// </summary>
+    public void DeleteAttachment(AttachedFile attFile)
+    {
+        AttachmentList.Remove(attFile);
+    }
+
+    public void FileUploadHandler(List<UploadedFileRequest> filesRequests)
+    {
+        IsAddingFile = false;
+        if (filesRequests == null)
+        {
+            //nothing to add - user pressed Add without selecting a file
+            return;
+        }
+
+        foreach (var freq in filesRequests)
+        {
+            var attach = new AttachedFile();
+            attach.UriForFile = freq.ServerRelativeFileNameAndPath;
+            attach.FileDescription = freq.FileDescription;
+
+            AttachmentList.Add(attach);
+        }
+
+    }
+
+}

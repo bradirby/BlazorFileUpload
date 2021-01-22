@@ -1,0 +1,36 @@
+﻿@page "/"
+@using BlazorFileUpload.Shared
+
+<h1>Hello, world!</h1>
+
+Welcome to your new app.
+
+<SurveyPrompt Title="How is Blazor working for you?" />
+
+<div class="col-6">
+    <div class="card">
+        <div class="card-header">
+            Attachment Manager
+        </div>
+        <div class="card-body">
+            <AttachmentManager AttachmentList=@AttachmentList ></AttachmentManager>
+        </div>
+    </div>
+</div>
+
+
+
+@code
+{
+    private List<AttachedFile> AttachmentList { get; set; } = new List<AttachedFile>();
+    protected override Task OnInitializedAsync()
+    {
+
+        //init the list for testing so we already have some attachments in it
+        AttachmentList = new List<AttachedFile>();
+        AttachmentList.Add(new AttachedFile() {FileDescription = "My First file", UriForFile = "http://www.google.com"});
+        AttachmentList.Add(new AttachedFile() {FileDescription = "My Second file", UriForFile = "http://www.Microsoft.com"});
+
+        return base.OnInitializedAsync();
+    }
+}

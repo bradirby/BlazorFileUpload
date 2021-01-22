@@ -1,0 +1,96 @@
+﻿@using System.IO
+@using BlazorFileUpload.Shared
+
+
+@if (ShowDescription)
+{
+    <div class="form-group row">
+        <div class=" col">
+            <input type="text" placeholder="Describe your attachment" class="form-control col" @bind-value=@NewFileDesc />
+        </div>
+    </div>
+}
+
+
+<form @onsubmit="OnSubmit">
+    <div class="form-group row">
+        <div class="form-group col">
+            @if (AllowMultiple)
+            {
+                <InputFile OnChange="OnInputFileChange" multiple />
+            }
+            else
+            {
+                <InputFile OnChange="OnInputFileChange" />
+            }
+        </div>
+    </div>
+    <div class="form-group row">
+        <div class="form-inline col">
+            <button type="submit" class="btn btn-primary col-5 mr-2 " disabled="@string.IsNullOrEmpty(NewFileDesc)" >Add</button>
+            <button type="button" @onclick="AbortFileUpload" class="btn btn-danger col-5 ml-2">Cancel</button>
+        </div>
+    </div>
+</form>
+
+
+    @code {
+
+        /// <summary>
+        /// Relative path on where to store the file = i.e. https://MySite.com/FileStorageRelativePath/MyFile.jpg
+        /// </summary>
+        [Parameter] public string FileStorageRelativePath { get; set; }
+        [Parameter] public EventCallback<List<UploadedFileRequest>> OnFileUploaded { get; set; }
+        [Parameter] public bool ShowDescription { get; set; } = true;
+        [Parameter] public bool AllowMultiple { get; set; } = true;
+
+        [Inject] public IFileUploadService FileUploadSvc { get; set; }
+
+        private string NewFileDesc { get; set; }
+        IReadOnlyList<IBrowserFile> selectedFiles;
+
+        private void OnInputFileChange(InputFileChangeEventArgs e)
+        {
+            selectedFiles = e.GetMultipleFiles();
+            this.StateHasChanged();
+        }
+
+        private async void AbortFileUpload()
+        {
+            await OnFileUploaded.InvokeAsync(new List<UploadedFileRequest>());
+        }
+
+        private async void OnSubmit()
+        {
+            var descLst = new List<UploadedFileRequest>();
+
+            if (selectedFiles == null)
+            {
+                //user didn't choose anything, so return empty list
+                await OnFileUploaded.InvokeAsync(descLst);
+                return;
+            }
+
+            foreach (var file in selectedFiles)
+            {
+                var uploadedFile = new UploadedFileRequest();
+                uploadedFile.FileDescription = NewFileDesc;
+                uploadedFile.ClientSideFileName = file.Name;
+                uploadedFile.ServerRelativeFileNameAndPath = Path.Combine(FileStorageRelativePath, Guid.NewGuid().ToString()) ;
+                uploadedFile.ServerRelativeFileNameAndPath += Path.GetExtension(file.Name);
+
+                var stream = file.OpenReadStream();
+                var ms = new MemoryStream();
+                await stream.CopyToAsync(ms);
+                stream.Close();
+                uploadedFile.FileContent = ms.ToArray();
+                ms.Close();
+
+                await FileUploadSvc.UploadAsync(uploadedFile);
+                descLst.Add(uploadedFile);
+
+            }
+            await OnFileUploaded.InvokeAsync(descLst);
+
+        }
+    }
